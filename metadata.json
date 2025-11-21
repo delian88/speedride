@@ -1,0 +1,7 @@
+{
+  "name": "Speedride",
+  "description": "A full-featured ride-hailing platform simulator including Rider, Driver, and Admin interfaces with AI-powered support and insights.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
