@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
@@ -10,12 +11,12 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import { BackendProvider, useBackend } from './context/MockBackendContext';
 import { UserRole } from './types';
 
-const ProtectedRoute = ({ children, role }: { children: React.ReactElement, role: UserRole }) => {
+const ProtectedRoute = ({ children, role }: React.PropsWithChildren<{ role: UserRole }>) => {
   const { user } = useBackend();
   if (!user || user.role !== role) {
     return <Navigate to="/login" replace />;
   }
-  return children;
+  return <>{children}</>;
 };
 
 const AppRoutes = () => {

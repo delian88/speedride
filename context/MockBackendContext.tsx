@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole, Ride, RideStatus, Driver, VehicleType, Transaction, RideHistoryItem } from '../types';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode, PropsWithChildren } from 'react';
+import { User, UserRole, Ride, RideStatus, Driver, VehicleType, Transaction, RideHistoryItem, ChatMessage } from '../types';
 import { MOCK_RIDER, MOCK_DRIVER, MOCK_ADMIN } from '../constants';
 
 interface BackendContextType {
@@ -22,11 +23,12 @@ interface BackendContextType {
 
   // Shared
   addFunds: (amount: number) => void;
+  sendMessage: (text: string) => void;
 }
 
 const BackendContext = createContext<BackendContextType | undefined>(undefined);
 
-export const BackendProvider = ({ children }: { children: ReactNode }) => {
+export const BackendProvider = ({ children }: PropsWithChildren<{}>) => {
   const [user, setUser] = useState<User | Driver | null>(null);
   const [activeRide, setActiveRide] = useState<Ride | null>(null);
 
@@ -85,7 +87,8 @@ export const BackendProvider = ({ children }: { children: ReactNode }) => {
       pickupCoords: { lat: 0, lng: 0 },
       destCoords: { lat: 1, lng: 1 },
       preferences: [],
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      chatHistory: []
     };
     setActiveRide(newRide);
 
@@ -101,8 +104,8 @@ export const BackendProvider = ({ children }: { children: ReactNode }) => {
              // Auto complete
              setTimeout(() => {
                  completeRideInternal(newRide.price);
-             }, 10000);
-          }, 5000);
+             }, 30000); // Longer ride for chat demo
+          }, 8000);
         }, 4000);
       }, 3000);
     }
@@ -139,7 +142,8 @@ export const BackendProvider = ({ children }: { children: ReactNode }) => {
                     pickupCoords: { lat: 0, lng: 0 },
                     destCoords: { lat: 0, lng: 0 },
                     preferences: [],
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    chatHistory: []
                  };
                  setActiveRide(newRide);
              }
@@ -234,6 +238,49 @@ export const BackendProvider = ({ children }: { children: ReactNode }) => {
       })
   }
 
+  // --- Chat Logic ---
+  const sendMessage = (text: string) => {
+    if (!activeRide || !user) return;
+
+    const newMessage: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      senderRole: user.role,
+      text: text,
+      timestamp: Date.now(),
+      isRead: false
+    };
+
+    // 1. Add User Message
+    setActiveRide(prev => prev ? {
+      ...prev,
+      chatHistory: [...prev.chatHistory, newMessage]
+    } : null);
+
+    // 2. Simulate Bot Reply
+    const isRider = user.role === UserRole.RIDER;
+    const botRole = isRider ? UserRole.DRIVER : UserRole.RIDER;
+    
+    const botResponses = isRider 
+      ? ["I'm on my way!", "Traffic is a bit heavy, be there in 2.", "Okay, noted.", "I've arrived at the pickup point."] // Driver responses
+      : ["I'm wearing a red jacket.", "I'm coming down now.", "Please wait a moment.", "Thank you!", "Where exactly are you?"]; // Rider responses
+
+    const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)];
+
+    setTimeout(() => {
+      const botMessage: ChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        senderRole: botRole,
+        text: randomResponse,
+        timestamp: Date.now(),
+        isRead: false
+      };
+      setActiveRide(prev => prev ? {
+        ...prev,
+        chatHistory: [...prev.chatHistory, botMessage]
+      } : null);
+    }, 2000 + Math.random() * 2000); // 2-4s delay
+  };
+
   return (
     <BackendContext.Provider value={{ 
       user, 
@@ -248,7 +295,8 @@ export const BackendProvider = ({ children }: { children: ReactNode }) => {
       rejectRide,
       startTrip,
       completeRide,
-      addFunds
+      addFunds,
+      sendMessage
     }}>
       {children}
     </BackendContext.Provider>

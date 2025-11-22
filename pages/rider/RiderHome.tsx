@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, Clock, Star, Phone, MessageSquare, Shield, CreditCard, Settings, Menu, LogOut, History, Wallet, User as UserIcon, X, Plus } from 'lucide-react';
+import { MapPin, Search, Clock, Star, Phone, MessageSquare, Shield, CreditCard, Settings, Menu, LogOut, History, Wallet, User as UserIcon, X, Plus, Building, Loader, Copy, Check } from 'lucide-react';
 import { useBackend } from '../../context/MockBackendContext';
 import { VEHICLE_OPTIONS, MOCK_DRIVER } from '../../constants';
-import { RideStatus } from '../../types';
+import { RideStatus, UserRole } from '../../types';
 import MapPlaceholder from '../../components/ui/MapPlaceholder';
+import ChatInterface from '../../components/ui/ChatInterface';
 import { getTripInsight } from '../../services/geminiService';
 import { useNavigate } from 'react-router-dom';
 
 const RiderHome: React.FC = () => {
-  const { user, activeRide, requestRide, cancelRide, logout, addFunds } = useBackend();
+  const { user, activeRide, requestRide, cancelRide, logout, addFunds, sendMessage } = useBackend();
   const navigate = useNavigate();
   
   // UI State
@@ -18,6 +20,14 @@ const RiderHome: React.FC = () => {
   const [selectedVehicle, setSelectedVehicle] = useState(VEHICLE_OPTIONS[1]);
   const [insight, setInsight] = useState<string>("");
   const [showRating, setShowRating] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  
+  // Payment State
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpTab, setTopUpTab] = useState<'CARD' | 'BANK'>('CARD');
+  const [topUpAmount, setTopUpAmount] = useState<string>('1000');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Fetch AI insight
   useEffect(() => {
@@ -32,6 +42,7 @@ const RiderHome: React.FC = () => {
   useEffect(() => {
     if (activeRide?.status === RideStatus.COMPLETED) {
         setShowRating(true);
+        setIsChatOpen(false);
     }
   }, [activeRide?.status]);
 
@@ -56,6 +67,26 @@ const RiderHome: React.FC = () => {
       navigate('/');
   };
 
+  const handleTopUp = () => {
+      if (!topUpAmount) return;
+      setIsProcessingPayment(true);
+      
+      // Simulate processing delay
+      setTimeout(() => {
+          addFunds(parseFloat(topUpAmount));
+          setIsProcessingPayment(false);
+          setShowTopUp(false);
+          // Reset
+          setTopUpAmount('1000');
+      }, 2000);
+  }
+
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+  }
+
   // --- SIDEBAR MENU ---
   const Sidebar = () => (
     <div className="fixed inset-0 z-50 flex">
@@ -72,7 +103,7 @@ const RiderHome: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-sm bg-gray-800 p-3 rounded-lg">
                     <span>Balance</span>
-                    <span className="font-bold text-green-400">${user?.balance.toFixed(2)}</span>
+                    <span className="font-bold text-green-400">₦{user?.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                 </div>
             </div>
             
@@ -104,6 +135,118 @@ const RiderHome: React.FC = () => {
     </div>
   );
 
+  // --- TOP UP MODAL ---
+  const TopUpModal = () => (
+      <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-scale-up">
+              <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold">Add Funds</h2>
+                  <button onClick={() => setShowTopUp(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={24}/></button>
+              </div>
+
+              {/* Amount Selector */}
+              <div className="mb-6">
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Amount</label>
+                  <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-500">₦</span>
+                      <input 
+                          type="number" 
+                          value={topUpAmount}
+                          onChange={(e) => setTopUpAmount(e.target.value)}
+                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl py-4 pl-8 pr-4 text-2xl font-bold focus:outline-none focus:border-black transition-colors"
+                      />
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                      {['500', '1000', '2000', '5000'].map(amt => (
+                          <button 
+                            key={amt}
+                            onClick={() => setTopUpAmount(amt)}
+                            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${topUpAmount === amt ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >
+                              ₦{amt}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+
+              {/* Method Tabs */}
+              <div className="flex p-1 bg-gray-100 rounded-xl mb-6">
+                  <button 
+                    onClick={() => setTopUpTab('CARD')}
+                    className={`flex-1 py-3 rounded-lg text-sm font-bold flex items-center justify-center transition-all ${topUpTab === 'CARD' ? 'bg-white shadow-sm text-black' : 'text-gray-500'}`}
+                  >
+                      <CreditCard size={16} className="mr-2"/> Card
+                  </button>
+                  <button 
+                    onClick={() => setTopUpTab('BANK')}
+                    className={`flex-1 py-3 rounded-lg text-sm font-bold flex items-center justify-center transition-all ${topUpTab === 'BANK' ? 'bg-white shadow-sm text-black' : 'text-gray-500'}`}
+                  >
+                      <Building size={16} className="mr-2"/> Bank Transfer
+                  </button>
+              </div>
+
+              {/* Tab Content */}
+              {topUpTab === 'CARD' ? (
+                  <div className="space-y-4 mb-6 animate-fade-in">
+                      <div className="space-y-3">
+                          <input type="text" placeholder="Card Number" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm focus:outline-none focus:border-black" />
+                          <div className="flex gap-3">
+                              <input type="text" placeholder="MM/YY" className="w-1/2 p-4 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm focus:outline-none focus:border-black" />
+                              <input type="text" placeholder="CVC" className="w-1/2 p-4 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm focus:outline-none focus:border-black" />
+                          </div>
+                      </div>
+                      <button 
+                        onClick={handleTopUp}
+                        disabled={isProcessingPayment}
+                        className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition-colors flex items-center justify-center"
+                      >
+                          {isProcessingPayment ? <Loader className="animate-spin mr-2" /> : 'Pay Securely'}
+                      </button>
+                  </div>
+              ) : (
+                  <div className="space-y-4 mb-6 animate-fade-in">
+                      <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                          <p className="text-xs font-bold text-blue-600 uppercase mb-4">Bank Details</p>
+                          <div className="space-y-3">
+                              <div className="flex justify-between items-center">
+                                  <span className="text-gray-500 text-sm">Bank Name</span>
+                                  <span className="font-bold text-sm">Zenith Bank</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                  <span className="text-gray-500 text-sm">Account Name</span>
+                                  <span className="font-bold text-sm">Speedride Nigeria Ltd</span>
+                              </div>
+                              <div className="flex justify-between items-center pt-2 border-t border-blue-100">
+                                  <span className="text-gray-500 text-sm">Account Number</span>
+                                  <div className="flex items-center">
+                                      <span className="font-mono font-bold text-lg mr-2">1012345678</span>
+                                      <button onClick={() => copyToClipboard('1012345678')} className="p-1 hover:bg-blue-200 rounded transition-colors">
+                                          {copied ? <Check size={14} className="text-green-600"/> : <Copy size={14} className="text-blue-600"/>}
+                                      </button>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      <div className="text-xs text-gray-400 text-center px-4">
+                          Transfer the exact amount of <b>₦{parseInt(topUpAmount).toLocaleString()}</b>. Funds will be added automatically after verification.
+                      </div>
+                      <button 
+                        onClick={handleTopUp}
+                        disabled={isProcessingPayment}
+                        className="w-full bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-500 transition-colors flex items-center justify-center shadow-lg shadow-green-900/20"
+                      >
+                          {isProcessingPayment ? <Loader className="animate-spin mr-2" /> : 'I Have Sent the Money'}
+                      </button>
+                  </div>
+              )}
+              
+              <div className="flex items-center justify-center text-xs text-gray-400">
+                  <Shield size={12} className="mr-1"/> Secure Payment
+              </div>
+          </div>
+      </div>
+  );
+
   // --- WALLET VIEW ---
   if (view === 'WALLET') {
       return (
@@ -116,9 +259,9 @@ const RiderHome: React.FC = () => {
                  <div className="bg-black text-white rounded-2xl p-8 mb-8 shadow-xl relative overflow-hidden transform transition-transform hover:scale-[1.02]">
                      <div className="relative z-10">
                          <p className="text-gray-400 mb-2">Total Balance</p>
-                         <h2 className="text-4xl font-bold mb-6">${user?.balance.toFixed(2)}</h2>
-                         <button onClick={() => addFunds(50)} className="bg-green-500 text-black px-6 py-3 rounded-full font-bold flex items-center hover:bg-green-400 hover:shadow-lg transition-all">
-                             <Plus size={20} className="mr-2" /> Top Up $50
+                         <h2 className="text-4xl font-bold mb-6">₦{user?.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</h2>
+                         <button onClick={() => setShowTopUp(true)} className="bg-green-500 text-black px-6 py-3 rounded-full font-bold flex items-center hover:bg-green-400 hover:shadow-lg transition-all">
+                             <Plus size={20} className="mr-2" /> Top Up
                          </button>
                      </div>
                      <div className="absolute -right-10 -bottom-20 w-64 h-64 bg-gray-800 rounded-full opacity-50 blur-3xl animate-pulse"></div>
@@ -138,7 +281,7 @@ const RiderHome: React.FC = () => {
                                  </div>
                              </div>
                              <span className={`font-bold ${tx.type === 'CREDIT' ? 'text-green-600' : 'text-black'}`}>
-                                 {tx.type === 'CREDIT' ? '+' : '-'}${Math.abs(tx.amount).toFixed(2)}
+                                 {tx.type === 'CREDIT' ? '+' : '-'}₦{Math.abs(tx.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}
                              </span>
                          </div>
                      ))}
@@ -147,6 +290,7 @@ const RiderHome: React.FC = () => {
                      )}
                  </div>
              </div>
+             {showTopUp && <TopUpModal />}
           </div>
       );
   }
@@ -164,7 +308,7 @@ const RiderHome: React.FC = () => {
                     <div key={trip.id} className="bg-white p-4 rounded-xl shadow-sm animate-fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
                         <div className="flex justify-between mb-2">
                             <span className="text-xs font-bold bg-gray-100 px-2 py-1 rounded">{trip.date}</span>
-                            <span className="font-bold">${trip.price.toFixed(2)}</span>
+                            <span className="font-bold">₦{trip.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                         </div>
                         <div className="flex items-center mb-4">
                             <div className="flex flex-col items-center mr-3">
@@ -195,7 +339,20 @@ const RiderHome: React.FC = () => {
   return (
     <div className="h-screen relative bg-gray-100 overflow-hidden">
         {view === 'MENU' && <Sidebar />}
+        {showTopUp && <TopUpModal />}
         
+        {/* Chat Overlay */}
+        {isChatOpen && activeRide && (
+            <ChatInterface 
+                messages={activeRide.chatHistory}
+                currentUserRole={UserRole.RIDER}
+                otherUserName={MOCK_DRIVER.name}
+                otherUserAvatar={MOCK_DRIVER.avatarUrl}
+                onSend={sendMessage}
+                onClose={() => setIsChatOpen(false)}
+            />
+        )}
+
         {/* Top Bar */}
         <div className="absolute top-4 left-4 z-30">
             <button onClick={() => setView('MENU')} className="bg-white p-3 rounded-full shadow-lg hover:bg-gray-50 transition-all hover:scale-110 active:scale-95">
@@ -214,7 +371,7 @@ const RiderHome: React.FC = () => {
         </div>
 
         {/* Booking Panel / Active Ride Status */}
-        <div className="absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)] max-h-[85vh] overflow-y-auto animate-slide-up">
+        <div className={`absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)] max-h-[85vh] overflow-y-auto animate-slide-up ${isChatOpen ? 'hidden md:block' : ''}`}>
             
             {/* STATE 1: NO ACTIVE RIDE */}
             {!activeRide && !showRating && (
@@ -271,7 +428,7 @@ const RiderHome: React.FC = () => {
                                                 <p className="text-xs text-gray-500">3 mins away • 4 seats</p>
                                             </div>
                                         </div>
-                                        <p className="font-bold text-lg">${(v.base * 1.5).toFixed(2)}</p>
+                                        <p className="font-bold text-lg">₦{(v.base * 1.5).toLocaleString(undefined, {minimumFractionDigits: 0})}</p>
                                     </div>
                                 ))}
                             </div>
@@ -279,9 +436,9 @@ const RiderHome: React.FC = () => {
                             <div className="flex items-center justify-between mb-4 px-1">
                                 <div className="flex items-center text-sm font-bold">
                                     <div className="bg-green-100 p-1.5 rounded mr-2"><CreditCard size={16} className="text-green-600"/></div>
-                                    Cash
+                                    Wallet Balance (₦{user?.balance.toLocaleString(undefined, {minimumFractionDigits: 2})})
                                 </div>
-                                <span className="text-blue-600 font-bold text-sm cursor-pointer hover:underline">Switch</span>
+                                <span onClick={() => setShowTopUp(true)} className="text-blue-600 font-bold text-sm cursor-pointer hover:underline">Top Up</span>
                             </div>
 
                             <button onClick={handleBook} className="w-full bg-green-500 text-black font-bold py-4 rounded-xl text-lg hover:bg-green-400 shadow-lg hover:shadow-green-200 transition-all transform active:scale-95">
@@ -323,7 +480,15 @@ const RiderHome: React.FC = () => {
                                 </div>
                                 <div className="flex flex-col gap-2">
                                      <button className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black hover:bg-gray-200 hover:scale-110 transition-all"><Phone size={20}/></button>
-                                     <button className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black hover:bg-gray-200 hover:scale-110 transition-all"><MessageSquare size={20}/></button>
+                                     <button 
+                                        onClick={() => setIsChatOpen(true)}
+                                        className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-800 hover:scale-110 transition-all relative"
+                                     >
+                                        <MessageSquare size={20}/>
+                                        {activeRide.chatHistory.length > 0 && !isChatOpen && (
+                                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white"></span>
+                                        )}
+                                     </button>
                                 </div>
                             </div>
                             
@@ -372,7 +537,7 @@ const RiderHome: React.FC = () => {
 
                     <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl mb-6">
                         <span className="font-bold">Total</span>
-                        <span className="font-bold text-xl">${(activeRide?.price || 0).toFixed(2)}</span>
+                        <span className="font-bold text-xl">₦{(activeRide?.price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                     </div>
 
                     <button onClick={handleRate} className="w-full bg-green-500 text-black font-bold py-4 rounded-xl text-lg hover:bg-green-400 shadow-lg transform active:scale-95 transition-all">Submit</button>

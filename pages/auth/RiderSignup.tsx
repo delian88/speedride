@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Smartphone, Mail, User, Check, Loader } from 'lucide-react';
@@ -65,14 +66,14 @@ const RiderSignup: React.FC = () => {
                 
                 <form onSubmit={handlePhoneSubmit}>
                     <div className="bg-gray-100 p-4 rounded-xl flex items-center mb-6 border-2 border-transparent focus-within:border-black transition-colors">
-                        <div className="flex items-center pr-3 border-r border-gray-300 mr-3">
-                            <img src="https://flagcdn.com/w40/us.png" alt="US" className="w-6 h-4 rounded-sm" />
-                            <span className="ml-2 font-medium text-gray-700">+1</span>
+                        <div className="flex items-center pr-3 border-r border-gray-300 mr-3 cursor-pointer hover:bg-gray-200 rounded px-1 transition-colors">
+                            <img src="https://flagcdn.com/w40/ng.png" alt="NG" className="w-6 h-4 rounded-sm shadow-sm" />
+                            <span className="ml-2 font-medium text-gray-700">+234</span>
                         </div>
                         <input 
                             type="tel" 
                             className="bg-transparent flex-grow outline-none font-medium text-lg placeholder-gray-400"
-                            placeholder="000 000 0000"
+                            placeholder="800 000 0000"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                             autoFocus
@@ -112,7 +113,7 @@ const RiderSignup: React.FC = () => {
         {step === 'otp' && (
             <div className="w-full animate-fade-in">
                  <h2 className="text-2xl font-bold mb-2">Enter the code</h2>
-                 <p className="text-gray-500 mb-8">Sent to +1 {phone}</p>
+                 <p className="text-gray-500 mb-8">Sent to +234 {phone}</p>
                  
                  <div className="flex justify-between mb-8">
                     {otp.map((digit, idx) => (

@@ -1,3 +1,4 @@
+
 export enum UserRole {
   RIDER = 'RIDER',
   DRIVER = 'DRIVER',
@@ -48,6 +49,14 @@ export interface RideHistoryItem {
   driverName?: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  senderRole: UserRole;
+  text: string;
+  timestamp: number;
+  isRead: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -88,6 +97,7 @@ export interface Ride {
   eta: string;
   preferences: string[];
   timestamp: number;
+  chatHistory: ChatMessage[];
 }
 
 export interface PricingTier {

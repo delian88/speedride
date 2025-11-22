@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Car, Upload, CheckCircle, Check, Loader, FileText } from 'lucide-react';
@@ -17,7 +18,7 @@ const DriverSignup: React.FC = () => {
       name: '',
       email: '',
       phone: '',
-      city: 'San Francisco',
+      city: 'Lagos', // Default to a Nigerian city
       vehicleType: VehicleType.STANDARD,
       vehicleModel: '',
       vehiclePlate: '',
@@ -41,6 +42,7 @@ const DriverSignup: React.FC = () => {
               signup(UserRole.DRIVER, {
                   name: formData.name,
                   email: formData.email,
+                  phone: formData.phone, // Include phone
                   vehicleType: formData.vehicleType,
                   vehicleModel: formData.vehicleModel,
                   vehiclePlate: formData.vehiclePlate,
@@ -128,8 +130,21 @@ const DriverSignup: React.FC = () => {
                         </div>
                         <input type="email" placeholder="Email Address" className="w-full p-4 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-black" 
                             value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
-                         <input type="tel" placeholder="Phone Number" className="w-full p-4 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-black" 
-                            value={formData.phone} onChange={(e) => handleChange('phone', e.target.value)} />
+                         
+                         {/* Nigeria Phone Input */}
+                         <div className="w-full bg-white border rounded-xl flex items-center focus-within:ring-2 focus-within:ring-black focus-within:border-transparent p-1 transition-all">
+                             <div className="flex items-center pl-3 pr-2 border-r border-gray-200 cursor-pointer hover:bg-gray-50 rounded-l-lg py-3">
+                                 <img src="https://flagcdn.com/w40/ng.png" alt="NG" className="w-6 h-4 rounded-sm shadow-sm mr-2" />
+                                 <span className="font-bold text-gray-700 text-sm">+234</span>
+                             </div>
+                             <input 
+                                type="tel" 
+                                placeholder="800 000 0000" 
+                                className="flex-grow p-3 outline-none font-medium"
+                                value={formData.phone} 
+                                onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, ''))} 
+                             />
+                         </div>
                     </div>
                 )}
 
@@ -141,11 +156,11 @@ const DriverSignup: React.FC = () => {
                             <option value={VehicleType.STANDARD}>Standard Sedan</option>
                             <option value={VehicleType.ECONOMY}>Economy Hatchback</option>
                             <option value={VehicleType.BUSINESS}>Business / Luxury</option>
-                            <option value={VehicleType.MOTORBIKE}>Motorbike</option>
+                            <option value={VehicleType.MOTORBIKE}>Motorbike (Okada/Dispatch)</option>
                         </select>
-                        <input type="text" placeholder="Vehicle Model (e.g. Toyota Camry 2022)" className="w-full p-4 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-black" 
+                        <input type="text" placeholder="Vehicle Model (e.g. Toyota Camry 2015)" className="w-full p-4 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-black" 
                             value={formData.vehicleModel} onChange={(e) => handleChange('vehicleModel', e.target.value)} />
-                        <input type="text" placeholder="License Plate Number" className="w-full p-4 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-black uppercase font-mono" 
+                        <input type="text" placeholder="License Plate Number (e.g. LND-123-XY)" className="w-full p-4 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-black uppercase font-mono" 
                             value={formData.vehiclePlate} onChange={(e) => handleChange('vehiclePlate', e.target.value)} />
                     </div>
                 )}

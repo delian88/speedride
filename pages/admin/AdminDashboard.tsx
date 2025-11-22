@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Users, Car, DollarSign, Activity, AlertCircle, Search, MapPin, Check, X, LogOut } from 'lucide-react';
@@ -5,13 +6,13 @@ import { useNavigate } from 'react-router-dom';
 import { useBackend } from '../../context/MockBackendContext';
 
 const data = [
-  { name: 'Mon', rides: 4000, revenue: 2400 },
-  { name: 'Tue', rides: 3000, revenue: 1398 },
-  { name: 'Wed', rides: 2000, revenue: 9800 },
-  { name: 'Thu', rides: 2780, revenue: 3908 },
-  { name: 'Fri', rides: 1890, revenue: 4800 },
-  { name: 'Sat', rides: 2390, revenue: 3800 },
-  { name: 'Sun', rides: 3490, revenue: 4300 },
+  { name: 'Mon', rides: 4000, revenue: 2400000 },
+  { name: 'Tue', rides: 3000, revenue: 1398000 },
+  { name: 'Wed', rides: 2000, revenue: 980000 },
+  { name: 'Thu', rides: 2780, revenue: 3908000 },
+  { name: 'Fri', rides: 1890, revenue: 4800000 },
+  { name: 'Sat', rides: 2390, revenue: 3800000 },
+  { name: 'Sun', rides: 3490, revenue: 4300000 },
 ];
 
 const AdminDashboard: React.FC = () => {
@@ -118,7 +119,7 @@ const AdminDashboard: React.FC = () => {
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <p className="text-gray-500 text-sm font-medium">Total Revenue</p>
-                                    <h3 className="text-3xl font-bold mt-1">$48,290</h3>
+                                    <h3 className="text-3xl font-bold mt-1">₦4,829,000</h3>
                                 </div>
                                 <div className="bg-green-100 p-2 rounded-lg text-green-600"><DollarSign size={24}/></div>
                             </div>
@@ -161,7 +162,7 @@ const AdminDashboard: React.FC = () => {
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6"/>
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} />
                                         <YAxis axisLine={false} tickLine={false} />
-                                        <Tooltip />
+                                        <Tooltip formatter={(value) => `₦${value}`} />
                                         <Area type="monotone" dataKey="revenue" stroke="#2563eb" fillOpacity={1} fill="url(#colorRev)" />
                                     </AreaChart>
                                 </ResponsiveContainer>
@@ -236,7 +237,7 @@ const AdminDashboard: React.FC = () => {
                                     <td className="px-6 py-4">Active Driver {i}</td>
                                     <td className="px-6 py-4 text-green-600 font-bold text-sm">Online</td>
                                     <td className="px-6 py-4">4.8 ★</td>
-                                    <td className="px-6 py-4">$1,20{i}</td>
+                                    <td className="px-6 py-4">₦120,00{i}</td>
                                 </tr>
                              ))}
                         </tbody>
