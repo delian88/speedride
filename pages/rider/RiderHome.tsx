@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, Clock, Star, Phone, MessageSquare, Shield, CreditCard, Settings, Menu, LogOut, History, Wallet, User as UserIcon, X, Plus, Building, Loader, Copy, Check } from 'lucide-react';
+import { MapPin, Search, Clock, Star, Phone, MessageSquare, Shield, CreditCard, Settings, Menu, LogOut, History, Wallet, User as UserIcon, X, Plus, Building, Loader, Copy, Check, Bell, Moon, Globe, Heart, ChevronRight, MessageCircle } from 'lucide-react';
 import { useBackend } from '../../context/MockBackendContext';
 import { VEHICLE_OPTIONS, MOCK_DRIVER } from '../../constants';
-import { RideStatus, UserRole } from '../../types';
+import { RideStatus, UserRole, ChatMessage } from '../../types';
 import MapPlaceholder from '../../components/ui/MapPlaceholder';
 import ChatInterface from '../../components/ui/ChatInterface';
-import { getTripInsight } from '../../services/geminiService';
+import { getTripInsight, getSupportResponse } from '../../services/geminiService';
 import { useNavigate } from 'react-router-dom';
 
 const RiderHome: React.FC = () => {
@@ -14,7 +14,7 @@ const RiderHome: React.FC = () => {
   const navigate = useNavigate();
   
   // UI State
-  const [view, setView] = useState<'MAP' | 'MENU' | 'WALLET' | 'HISTORY'>('MAP');
+  const [view, setView] = useState<'MAP' | 'MENU' | 'WALLET' | 'HISTORY' | 'SETTINGS' | 'SUPPORT'>('MAP');
   const [pickup, setPickup] = useState("Current Location");
   const [destination, setDestination] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState(VEHICLE_OPTIONS[1]);
@@ -28,6 +28,18 @@ const RiderHome: React.FC = () => {
   const [topUpAmount, setTopUpAmount] = useState<string>('1000');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Support Chat State
+  const [isSupportChatOpen, setIsSupportChatOpen] = useState(false);
+  const [supportMessages, setSupportMessages] = useState<ChatMessage[]>([
+      {
+          id: 'welcome',
+          senderRole: UserRole.ADMIN,
+          text: "Hello! I'm the Speedride Support Bot. How can I help you today?",
+          timestamp: Date.now(),
+          isRead: true
+      }
+  ]);
 
   // Fetch AI insight
   useEffect(() => {
@@ -87,6 +99,30 @@ const RiderHome: React.FC = () => {
       setTimeout(() => setCopied(false), 2000);
   }
 
+  const handleSupportSend = async (text: string) => {
+      const newMessage: ChatMessage = {
+          id: `msg-${Date.now()}`,
+          senderRole: UserRole.RIDER,
+          text: text,
+          timestamp: Date.now(),
+          isRead: false
+      };
+      setSupportMessages(prev => [...prev, newMessage]);
+
+      // Simulate typing delay
+      setTimeout(async () => {
+          const responseText = await getSupportResponse(text, `User Name: ${user?.name}, Balance: ${user?.balance}, Current View: ${view}`);
+          const botMessage: ChatMessage = {
+              id: `msg-${Date.now() + 1}`,
+              senderRole: UserRole.ADMIN,
+              text: responseText,
+              timestamp: Date.now(),
+              isRead: false
+          };
+          setSupportMessages(prev => [...prev, botMessage]);
+      }, 1000);
+  };
+
   // --- SIDEBAR MENU ---
   const Sidebar = () => (
     <div className="fixed inset-0 z-50 flex">
@@ -117,10 +153,10 @@ const RiderHome: React.FC = () => {
                  <button onClick={() => setView('HISTORY')} className={`w-full flex items-center p-4 rounded-xl font-medium transition-all ${view === 'HISTORY' ? 'bg-gray-100 translate-x-2' : 'hover:bg-gray-50 hover:translate-x-1'}`}>
                     <History size={20} className="mr-3" /> Your Trips
                 </button>
-                <button className="w-full flex items-center p-4 rounded-xl font-medium hover:bg-gray-50 hover:translate-x-1 transition-all">
+                <button onClick={() => setView('SETTINGS')} className={`w-full flex items-center p-4 rounded-xl font-medium transition-all ${view === 'SETTINGS' ? 'bg-gray-100 translate-x-2' : 'hover:bg-gray-50 hover:translate-x-1'}`}>
                     <Settings size={20} className="mr-3" /> Settings
                 </button>
-                <button className="w-full flex items-center p-4 rounded-xl font-medium hover:bg-gray-50 hover:translate-x-1 transition-all">
+                <button onClick={() => setView('SUPPORT')} className={`w-full flex items-center p-4 rounded-xl font-medium transition-all ${view === 'SUPPORT' ? 'bg-gray-100 translate-x-2' : 'hover:bg-gray-50 hover:translate-x-1'}`}>
                     <Shield size={20} className="mr-3" /> Support
                 </button>
             </nav>
@@ -133,6 +169,162 @@ const RiderHome: React.FC = () => {
         </div>
         <div className="flex-grow bg-black/20 backdrop-blur-sm animate-fade-in" onClick={() => setView('MAP')}></div>
     </div>
+  );
+
+  // --- SETTINGS VIEW ---
+  const SettingsView = () => (
+    <div className="h-screen bg-gray-50 flex flex-col animate-fade-in">
+         <div className="bg-white p-4 shadow-sm flex items-center sticky top-0 z-10 border-b">
+             <button onClick={() => setView('MAP')} className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-3"><ChevronRight className="rotate-180" size={24}/></button>
+             <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+        </div>
+        <div className="p-6 overflow-y-auto flex-grow">
+             {/* Profile Card */}
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center">
+                 <img src={user?.avatarUrl} alt="Profile" className="w-16 h-16 rounded-full mr-4 border border-gray-100"/>
+                 <div className="flex-grow">
+                     <h3 className="font-bold text-lg">{user?.name}</h3>
+                     <p className="text-gray-500 text-sm">{user?.email}</p>
+                     <p className="text-gray-500 text-sm">{user?.phone}</p>
+                 </div>
+                 <button className="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-1 rounded-full">Edit</button>
+             </div>
+
+             <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Saved Places</h3>
+             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+                 <div className="p-4 border-b border-gray-50 flex items-center hover:bg-gray-50 cursor-pointer transition-colors">
+                     <div className="bg-blue-100 text-blue-600 p-2 rounded-full mr-4"><Building size={18}/></div>
+                     <div className="flex-grow">
+                         <span className="font-bold block text-sm">Home</span>
+                         <span className="text-gray-400 text-xs">Add home address</span>
+                     </div>
+                     <Plus size={18} className="text-gray-400"/>
+                 </div>
+                 <div className="p-4 flex items-center hover:bg-gray-50 cursor-pointer transition-colors">
+                     <div className="bg-orange-100 text-orange-600 p-2 rounded-full mr-4"><Building size={18}/></div>
+                     <div className="flex-grow">
+                         <span className="font-bold block text-sm">Work</span>
+                         <span className="text-gray-400 text-xs">Add work address</span>
+                     </div>
+                     <Plus size={18} className="text-gray-400"/>
+                 </div>
+             </div>
+
+             <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Preferences</h3>
+             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+                  <div className="p-4 border-b border-gray-50 flex justify-between items-center">
+                     <div className="flex items-center">
+                         <Bell size={18} className="text-gray-400 mr-3"/>
+                         <span className="font-medium">Push Notifications</span>
+                     </div>
+                     <div className="w-10 h-6 bg-green-500 rounded-full relative cursor-pointer">
+                         <div className="absolute right-1 top-1 bg-white w-4 h-4 rounded-full shadow-sm"></div>
+                     </div>
+                 </div>
+                 <div className="p-4 border-b border-gray-50 flex justify-between items-center">
+                     <div className="flex items-center">
+                         <Moon size={18} className="text-gray-400 mr-3"/>
+                         <span className="font-medium">Dark Mode</span>
+                     </div>
+                     <div className="w-10 h-6 bg-gray-200 rounded-full relative cursor-pointer">
+                         <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-sm"></div>
+                     </div>
+                 </div>
+                 <div className="p-4 flex justify-between items-center">
+                     <div className="flex items-center">
+                         <Globe size={18} className="text-gray-400 mr-3"/>
+                         <span className="font-medium">Language</span>
+                     </div>
+                     <span className="text-gray-500 text-sm font-medium">English (US)</span>
+                 </div>
+             </div>
+
+             <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Safety</h3>
+             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                 <div className="p-4 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50 cursor-pointer">
+                     <div className="flex items-center">
+                         <Heart size={18} className="text-gray-400 mr-3"/>
+                         <span className="font-medium">Trusted Contacts</span>
+                     </div>
+                     <span className="text-gray-400 text-sm">Manage</span>
+                 </div>
+                 <div className="p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer">
+                     <div className="flex items-center">
+                         <Shield size={18} className="text-gray-400 mr-3"/>
+                         <span className="font-medium">Emergency Assistance</span>
+                     </div>
+                     <ChevronRight size={18} className="text-gray-400"/>
+                 </div>
+             </div>
+             
+             <p className="text-center text-gray-400 text-xs mt-8">Speedride v2.0.1</p>
+        </div>
+    </div>
+  );
+
+  // --- SUPPORT VIEW ---
+  const SupportView = () => (
+      <div className="h-screen bg-gray-50 flex flex-col animate-fade-in">
+         <div className="bg-white p-4 shadow-sm flex items-center sticky top-0 z-10 border-b">
+             <button onClick={() => setView('MAP')} className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-3"><ChevronRight className="rotate-180" size={24}/></button>
+             <h1 className="text-xl font-bold text-gray-900">Help Center</h1>
+        </div>
+        
+        <div className="p-6 overflow-y-auto flex-grow">
+            <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-2">How can we help?</h2>
+                <div className="bg-white border border-gray-200 p-4 rounded-xl flex items-center shadow-sm focus-within:ring-2 focus-within:ring-black transition-all">
+                    <Search className="text-gray-400 mr-3" />
+                    <input type="text" placeholder="Search help topics..." className="bg-transparent outline-none w-full" />
+                </div>
+            </div>
+
+            {/* Recent Trip Context */}
+            {user?.history && user.history.length > 0 && (
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="font-bold text-gray-900">Recent Trip</h3>
+                        <span className="text-blue-600 text-xs font-bold cursor-pointer">View All</span>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex justify-between mb-2">
+                            <span className="text-xs text-gray-400 font-bold">{user.history[0].date}</span>
+                            <span className="font-bold text-sm">₦{user.history[0].price.toLocaleString()}</span>
+                        </div>
+                        <p className="text-sm font-medium truncate mb-4">{user.history[0].destination}</p>
+                        <div className="flex gap-2">
+                            <button className="flex-1 bg-gray-50 py-2 rounded-lg text-xs font-bold hover:bg-gray-100">Report Issue</button>
+                            <button className="flex-1 bg-gray-50 py-2 rounded-lg text-xs font-bold hover:bg-gray-100">Lost Item</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <h3 className="font-bold text-gray-900 mb-4">Common Questions</h3>
+            <div className="space-y-3 mb-8">
+                {['Review my fares or fees', 'A guide to Speedride', 'Payment options', 'Account and data options'].map((topic, i) => (
+                    <div key={i} className="bg-white p-4 rounded-xl border border-gray-100 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors">
+                        <span className="text-sm font-medium">{topic}</span>
+                        <ChevronRight size={16} className="text-gray-400"/>
+                    </div>
+                ))}
+            </div>
+
+            <div className="bg-black text-white rounded-2xl p-6 relative overflow-hidden">
+                <div className="relative z-10">
+                    <h3 className="font-bold text-lg mb-2">Still need help?</h3>
+                    <p className="text-gray-400 text-sm mb-6">Our AI support team is here to assist you 24/7.</p>
+                    <button 
+                        onClick={() => setIsSupportChatOpen(true)}
+                        className="bg-green-500 text-black px-6 py-3 rounded-full font-bold flex items-center hover:bg-green-400 transition-colors"
+                    >
+                        <MessageCircle size={18} className="mr-2"/> Chat with Support
+                    </button>
+                </div>
+                <div className="absolute right-0 bottom-0 w-32 h-32 bg-gray-800 rounded-full blur-2xl opacity-50 translate-y-10 translate-x-10"></div>
+            </div>
+        </div>
+      </div>
   );
 
   // --- TOP UP MODAL ---
@@ -335,13 +527,23 @@ const RiderHome: React.FC = () => {
     );
   }
 
+  // --- SETTINGS VIEW (RENDER) ---
+  if (view === 'SETTINGS') {
+      return <SettingsView />;
+  }
+
+  // --- SUPPORT VIEW (RENDER) ---
+  if (view === 'SUPPORT') {
+      return <SupportView />;
+  }
+
   // --- MAP / BOOKING VIEW ---
   return (
     <div className="h-screen relative bg-gray-100 overflow-hidden">
         {view === 'MENU' && <Sidebar />}
         {showTopUp && <TopUpModal />}
         
-        {/* Chat Overlay */}
+        {/* Chat Overlay (Rider-Driver) */}
         {isChatOpen && activeRide && (
             <ChatInterface 
                 messages={activeRide.chatHistory}
@@ -353,8 +555,19 @@ const RiderHome: React.FC = () => {
             />
         )}
 
+        {/* Support Chat Overlay */}
+        {isSupportChatOpen && (
+            <ChatInterface 
+                messages={supportMessages}
+                currentUserRole={UserRole.RIDER}
+                otherUserName="Speedride Support"
+                onSend={handleSupportSend}
+                onClose={() => setIsSupportChatOpen(false)}
+            />
+        )}
+
         {/* Top Bar */}
-        <div className="absolute top-4 left-4 z-30">
+        <div className={`absolute top-4 left-4 z-30 ${view !== 'MAP' ? 'hidden' : ''}`}>
             <button onClick={() => setView('MENU')} className="bg-white p-3 rounded-full shadow-lg hover:bg-gray-50 transition-all hover:scale-110 active:scale-95">
                 <Menu size={24} />
             </button>
@@ -371,7 +584,7 @@ const RiderHome: React.FC = () => {
         </div>
 
         {/* Booking Panel / Active Ride Status */}
-        <div className={`absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)] max-h-[85vh] overflow-y-auto animate-slide-up ${isChatOpen ? 'hidden md:block' : ''}`}>
+        <div className={`absolute bottom-0 left-0 right-0 z-30 bg-white rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)] max-h-[85vh] overflow-y-auto animate-slide-up ${isChatOpen || isSupportChatOpen ? 'hidden md:block' : ''}`}>
             
             {/* STATE 1: NO ACTIVE RIDE */}
             {!activeRide && !showRating && (
