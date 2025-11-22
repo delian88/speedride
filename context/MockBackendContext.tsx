@@ -1,5 +1,6 @@
+"use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, PropsWithChildren } from 'react';
+import React, { createContext, useContext, useState, useEffect, PropsWithChildren } from 'react';
 import { User, UserRole, Ride, RideStatus, Driver, VehicleType, Transaction, RideHistoryItem, ChatMessage } from '../types';
 import { MOCK_RIDER, MOCK_DRIVER, MOCK_ADMIN } from '../constants';
 
@@ -122,19 +123,19 @@ export const BackendProvider = ({ children }: PropsWithChildren<{}>) => {
     }
   };
 
-  // Driver Bot Simulation: If driver is online and idle, generate a request
+  // Driver Bot Simulation
   useEffect(() => {
     if (user?.role === UserRole.DRIVER && (user as Driver).isOnline && !activeRide) {
         const randomTime = Math.random() * 5000 + 3000; // 3-8 seconds
         const timeout = setTimeout(() => {
              if (!activeRide) {
-                 const mockFare = Math.floor(Math.random() * 30) + 10;
+                 const mockFare = Math.floor(Math.random() * 3000) + 500;
                  const newRide: Ride = {
                     id: `req-${Date.now()}`,
                     riderId: 'mock-rider',
                     pickup: '123 Main St',
                     destination: '456 Market St',
-                    status: RideStatus.OFFERED, // Specific status for driver to accept
+                    status: RideStatus.OFFERED, 
                     vehicleType: VehicleType.STANDARD,
                     price: mockFare,
                     distance: '3.4 km',
@@ -160,7 +161,7 @@ export const BackendProvider = ({ children }: PropsWithChildren<{}>) => {
   };
 
   const rejectRide = () => {
-      setActiveRide(null); // Will trigger the useEffect to find another one
+      setActiveRide(null); 
   };
 
   const startTrip = () => {
@@ -175,11 +176,9 @@ export const BackendProvider = ({ children }: PropsWithChildren<{}>) => {
       }
   };
 
-  // Internal helper to finalize ride, update wallet/history
   const completeRideInternal = (price: number) => {
     setActiveRide(prev => prev ? { ...prev, status: RideStatus.COMPLETED } : null);
     
-    // Update User Wallet & History
     setUser(prev => {
         if (!prev) return null;
         const transaction: Transaction = {
@@ -192,7 +191,7 @@ export const BackendProvider = ({ children }: PropsWithChildren<{}>) => {
         const historyItem: RideHistoryItem = {
             id: `h-${Date.now()}`,
             date: new Date().toLocaleDateString(),
-            pickup: 'Pickup Location', // In real app would use activeRide data
+            pickup: 'Pickup Location', 
             destination: 'Destination',
             price: price,
             status: RideStatus.COMPLETED,
@@ -238,7 +237,6 @@ export const BackendProvider = ({ children }: PropsWithChildren<{}>) => {
       })
   }
 
-  // --- Chat Logic ---
   const sendMessage = (text: string) => {
     if (!activeRide || !user) return;
 
@@ -250,19 +248,18 @@ export const BackendProvider = ({ children }: PropsWithChildren<{}>) => {
       isRead: false
     };
 
-    // 1. Add User Message
     setActiveRide(prev => prev ? {
       ...prev,
       chatHistory: [...prev.chatHistory, newMessage]
     } : null);
 
-    // 2. Simulate Bot Reply
+    // Bot logic remains same
     const isRider = user.role === UserRole.RIDER;
     const botRole = isRider ? UserRole.DRIVER : UserRole.RIDER;
     
     const botResponses = isRider 
-      ? ["I'm on my way!", "Traffic is a bit heavy, be there in 2.", "Okay, noted.", "I've arrived at the pickup point."] // Driver responses
-      : ["I'm wearing a red jacket.", "I'm coming down now.", "Please wait a moment.", "Thank you!", "Where exactly are you?"]; // Rider responses
+      ? ["I'm on my way!", "Traffic is a bit heavy.", "Okay, noted.", "I've arrived."] 
+      : ["I'm wearing a red jacket.", "Coming down now.", "Thank you!", "Where are you?"];
 
     const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)];
 
@@ -278,7 +275,7 @@ export const BackendProvider = ({ children }: PropsWithChildren<{}>) => {
         ...prev,
         chatHistory: [...prev.chatHistory, botMessage]
       } : null);
-    }, 2000 + Math.random() * 2000); // 2-4s delay
+    }, 2000 + Math.random() * 2000); 
   };
 
   return (
